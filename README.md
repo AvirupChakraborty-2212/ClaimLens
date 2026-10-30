@@ -61,7 +61,7 @@ The free tier sleeps after about 15 minutes idle and the first request after tha
 cd claimlens
 git init && git add . && git commit -m "ClaimLens: claim adjudication agent"
 git branch -M main
-git remote add origin https://github.com/RupakGanvir/ClaimLens.git
+git remote add origin https://github.com/AvirupChakraborty-2212/ClaimLens.git
 git push -u origin main
 ```
 

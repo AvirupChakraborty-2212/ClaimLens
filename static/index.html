@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClaimLens</title>
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#fff; --ink:#1c1b19; --mute:#6b6862; --line:#e3e0d8;
+  --ok:#1f7a4d; --okbg:#e6f3ec; --warn:#a15c00; --warnbg:#fbf0dc; --bad:#b3261e; --badbg:#fbe7e5;
+  --accent:#27408b; --accentbg:#e8ecf8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151513; --panel:#1e1e1b; --ink:#ecebe6; --mute:#9b988f; --line:#33322d;
+    --ok:#5fcf98; --okbg:#173325; --warn:#f0b35a; --warnbg:#38290f; --bad:#ff8f87; --badbg:#3b1b19;
+    --accent:#9db3f5; --accentbg:#1f2745;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:20px 16px 8px;max-width:1180px;margin:0 auto}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--mute);max-width:70ch}
+main{max-width:1180px;margin:0 auto;padding:12px 16px 60px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 10px}
+label{display:block;font-size:12px;color:var(--mute);margin:10px 0 4px}
+textarea,select{width:100%;font:12.5px/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+textarea{height:130px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;font-weight:600;padding:9px 14px;border-radius:7px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent)}
+button:disabled{opacity:.5;cursor:wait}
+@media(prefers-color-scheme:dark){button{color:#10131f}button.ghost{color:var(--accent)}}
+.banner{border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid}
+.banner b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.banner .big{font-size:20px;font-weight:700;margin:2px 0}
+.b-approved,.b-partially_approved{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.b-rejected{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.b-needs_human_review{background:var(--warnbg);border-color:var(--warn);color:var(--warn)}
+.banner span{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.cut td.pay{color:var(--bad)}
+.why{color:var(--mute);font-size:12.5px}
+.chip{display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:var(--accentbg);color:var(--accent);font-size:11.5px;cursor:pointer;border:0;font-weight:600}
+.quote{display:none;margin-top:4px;padding:6px 8px;border-left:3px solid var(--accent);background:var(--accentbg);font-size:12px;color:var(--ink)}
+.quote.open{display:block}
+tfoot td{font-weight:700;border-bottom:0}
+ol.steps{list-style:none;margin:0;padding:0}
+ol.steps li{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-top:6px}
+.dot.ok{background:var(--ok)} .dot.flag{background:var(--warn)} .dot.fail{background:var(--bad)}
+.steps b{font-weight:600}
+.err{color:var(--bad);margin-top:8px}
+.muted{color:var(--mute)}
+.empty{padding:40px 10px;text-align:center;color:var(--mute)}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>ClaimLens</h1>
+  <p>Give it a policy, a hospital bill and a discharge summary. It returns a settlement: what is payable, what is deducted, and the policy clause behind every deduction. Anything it cannot settle with confidence goes to a human.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>Inputs</h2>
+    <label for="sample">Load a sample claim (synthetic data)</label>
+    <select id="sample"></select>
+    <label for="policy">Policy wording</label><textarea id="policy"></textarea>
+    <label for="bill">Hospital bill</label><textarea id="bill"></textarea>
+    <label for="discharge">Discharge summary</label><textarea id="discharge" style="height:90px"></textarea>
+    <div class="row">
+      <button id="run">Adjudicate claim</button>
+    </div>
+    <details>
+      <summary>…or upload files (PDF or text)</summary>
+      <label>Policy <input type="file" id="fpolicy"></label>
+      <label>Bill <input type="file" id="fbill"></label>
+      <label>Discharge summary <input type="file" id="fdischarge"></label>
+      <div class="row"><button id="runfiles" class="ghost">Adjudicate uploaded files</button></div>
+    </details>
+    <div id="err" class="err"></div>
+  </section>
+
+  <section id="out"><div class="card empty">Pick a sample and press <b>Adjudicate claim</b>.</div></section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const inr = n => "₹" + Number(n).toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LABEL = {approved:"Approved", partially_approved:"Partially approved", rejected:"Rejected", needs_human_review:"Needs human review"};
+let uid = 0;
+
+function cite(c){
+  if(!c) return "";
+  const id = "q" + (++uid);
+  return `<button class="chip" onclick="document.getElementById('${id}').classList.toggle('open')">cl. ${esc(c.clause)} · p.${c.page}</button>
+          <div class="quote" id="${id}">“${esc(c.quote)}”</div>`;
+}
+
+function render(r){
+  const rows = [...r.lines, ...r.adjustments].map(l => {
+    const adj = l.category === "adjustment";
+    const cut = l.deducted > 0.004;
+    return `<tr class="${cut ? "cut" : ""}">
+      <td>${esc(l.description)}<div class="why">${esc(l.reason)}${cite(l.citation)}</div></td>
+      <td class="n">${adj ? "" : inr(l.billed)}</td>
+      <td class="n pay">${adj ? "−" + inr(l.deducted) : inr(l.payable)}</td></tr>`;
+  }).join("");
+
+  const reasons = r.rejection_reasons.map(x => `<div>• ${esc(x.text)}${cite(x.citation)}</div>`).join("");
+  const flags = r.review_flags.length
+    ? `<div class="card" style="margin-top:12px"><h2>Needs a human</h2>${r.review_flags.map(f => `<div>• ${esc(f)}</div>`).join("")}</div>` : "";
+  const steps = r.steps.map(s => `<li><span class="dot ${s.status}"></span><div><b>${esc(s.name)}</b> <span class="muted">${esc(s.detail)}</span></div></li>`).join("");
+  const c = r.claim;
+
+  $("out").innerHTML = `
+    <div class="banner b-${r.decision}">
+      <b>${LABEL[r.decision]}${r.provisional ? " · provisional" : ""}</b>
+      <div class="big">${r.decision === "rejected" ? "Nothing payable" : inr(r.payable_total) + " payable"}</div>
+      <span>${esc(r.summary)}</span>
+      ${reasons ? `<div style="margin-top:6px;color:var(--ink)">${reasons}</div>` : ""}
+    </div>
+    <div class="card">
+      <h2>Settlement · ${esc(c.patient_name || "patient")} · ${esc(c.diagnosis)}</h2>
+      <table>
+        <thead><tr><th>Item</th><th class="n">Billed</th><th class="n">Payable</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total</td><td class="n">${inr(r.billed_total)}</td><td class="n">${inr(r.payable_total)}</td></tr></tfoot>
+      </table>
+    </div>
+    ${flags}
+    <div class="card" style="margin-top:12px"><h2>What the agent did</h2><ol class="steps">${steps}</ol>
+      <div class="muted" style="margin-top:8px;font-size:12px">Claim extracted by: ${esc(c.extractor)} · amounts computed by deterministic code, not the LLM.</div>
+    </div>`;
+}
+
+async function call(url, opts){
+  $("err").textContent = ""; $("run").disabled = $("runfiles").disabled = true;
+  try{
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || res.statusText);
+    render(data);
+  }catch(e){ $("err").textContent = e.message; }
+  finally{ $("run").disabled = $("runfiles").disabled = false; }
+}
+
+$("run").onclick = () => call("/api/adjudicate", {method:"POST", headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({policy:$("policy").value, bill:$("bill").value, discharge:$("discharge").value})});
+
+$("runfiles").onclick = () => {
+  const fd = new FormData();
+  for(const k of ["policy","bill","discharge"]){
+    const f = $("f"+k).files[0];
+    if(!f){ $("err").textContent = "Choose all three files."; return; }
+    fd.append(k, f);
+  }
+  call("/api/adjudicate/upload", {method:"POST", body: fd});
+};
+
+async function loadSample(id){
+  const s = await (await fetch("/api/samples/" + id)).json();
+  $("policy").value = s.policy; $("bill").value = s.bill; $("discharge").value = s.discharge;
+}
+
+(async () => {
+  const list = await (await fetch("/api/samples")).json();
+  $("sample").innerHTML = list.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join("");
+  $("sample").onchange = e => loadSample(e.target.value);
+  loadSample(list[0].id);
+})();
+</script>
+</body>
+</html>

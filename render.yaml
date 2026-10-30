@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: claimlens
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: GEMINI_API_KEY   # optional: enables LLM extraction for messy/scanned bills
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
